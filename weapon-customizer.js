@@ -165,6 +165,49 @@ if (actors.length > 0) {
               ui.notifications.info(`${selectedWeapon.name} modified for ${actor.name}`);
             },
           },
+          clone: {
+            label: "Clone",
+            callback: async (html) => {
+              const selectedWeaponId = html.find("#weapon-item").val();
+              const damageType = html.find("#damage-type").val();
+              const weaponType = html.find("#weapon-type").val();
+              const accuracyMod = parseInt(html.find("#accuracy-mod").val(), 10);
+              const damageMod = parseInt(html.find("#damage-mod").val(), 10);
+              const selectedWeapon = actor.items.get(selectedWeaponId);
+
+              // Fetch isEquipped value and slot from selected weapon
+              const { value, slot } = selectedWeapon.system.isEquipped;
+
+              // Modify the item with the selected values
+              await selectedWeapon.update({
+                "system.isEquipped.value": false,
+                "system.isEquipped.slot": 'default'
+              });
+
+              // Create a new item based on the selected item
+              const newItemData = foundry.utils.deepClone(selectedWeapon);
+              const newItemName = `${newItemData.name} (Modified)`;
+
+              // Create the new item and add it to the actor
+              const newItem = await Item.create(newItemData, { parent: actor });
+
+              // Modify the item with the selected values
+              await newItem.update({
+                "system.accuracy.value": newItemData.system.accuracy.value + accuracyMod,
+                "system.damage.value": newItemData.system.damage.value + damageMod,
+                "system.damageType.value": damageType,
+                "system.type.value": weaponType,
+                "system.isEquipped.value": value,
+                "system.isEquipped.slot": slot
+              });
+
+              await newItem.update({ name: newItemName });
+
+              // Notify the user on success
+              ui.notifications.info(`${newItem.name} cloned and added to ${actor.name}`);
+            },
+          },
+
           tempRoll: {
             label: "Temp Roll",
             callback: async html => {
