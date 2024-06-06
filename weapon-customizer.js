@@ -99,9 +99,9 @@ const dialogContentTemplate = (weaponOptions, baseWeaponDetails, currentWeaponDe
   <form>
     <div>
       <div class="desc mb-3">
-        <div id="base-item">${baseWeaponDetails}</div>
-        <div style="text-align: center;margin:-5px 0 10px;"><i class="fa-solid fa-arrow-down"></i></div>
-        <div id="current-item">${currentWeaponDetails}</div>
+        <div id="base-item" class="inline-desc">${baseWeaponDetails}</div>
+        <div style="text-align: center;margin:5px 0;"><i class="fa-solid fa-arrow-down"></i></div>
+        <div id="current-item" class="inline-desc">${currentWeaponDetails}</div>
       </div
     </div>
 
