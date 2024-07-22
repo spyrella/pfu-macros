@@ -1,3 +1,8 @@
+window.macroCache = window.macroCache || {};
+
+// Retrieve the cached value of bypassClamping
+let bypassClamping = window.macroCache.bypassClamping || false;
+
 let targetedTokens = Array.from(game.user.targets);
 
 if (targetedTokens.length > 0) {
@@ -8,7 +13,7 @@ if (targetedTokens.length > 0) {
 
 function renderModifyStatsDialog(tokens) {
     let hasCharacter = tokens.some(token => token.actor.type === "character");
-    let dialogContent = buildDialogContent(tokens, hasCharacter);
+    let dialogContent = buildDialogContent(tokens, hasCharacter, bypassClamping);
 
     let dialog = new Dialog({
         title: "Modify Stats",
@@ -25,10 +30,9 @@ function renderModifyStatsDialog(tokens) {
     });
 
     dialog.render(true);
-
 }
 
-function buildDialogContent(tokens, hasCharacter) {
+function buildDialogContent(tokens, hasCharacter, bypassClamping) {
     let tokenInfo = tokens.map(token => {
         let ipField = '';
         if (hasCharacter && token.actor.type === "character") {
@@ -66,13 +70,19 @@ function buildDialogContent(tokens, hasCharacter) {
             <label><input type="checkbox" id="recoverHP"> Recover All HP</label>
             <label><input type="checkbox" id="recoverMP"> Recover All MP</label>
             ${hasCharacter ? '<label><input type="checkbox" id="recoverIP"> Recover All IP</label>' : ''}
+        </div>
+        <div>
+            <label><input type="checkbox" id="bypassClamping" ${bypassClamping ? 'checked' : ''}> Bypass Clamping</label>
         </div>`;
 
     return dialogContent;
 }
 
-function handleOkButtonClick(html, tokens, hasCharacter) {
-    tokens.forEach(token => {
+async function handleOkButtonClick(html, tokens, hasCharacter) {
+    let bypassClamping = html.find("#bypassClamping")[0].checked;
+    window.macroCache.bypassClamping = bypassClamping; // Save the state to cache
+
+    for (let token of tokens) {
         let changeHP = parseInt(html.find("#attributeHP")[0].value) || 0;
         let changeMP = parseInt(html.find("#attributeMP")[0].value) || 0;
         let changeIP = hasCharacter ? (parseInt(html.find("#attributeIP")[0].value) || 0) : 0;
@@ -84,9 +94,9 @@ function handleOkButtonClick(html, tokens, hasCharacter) {
         let maxMP = token.actor.system.resources.mp.max;
         let maxIP = token.actor.system.resources.ip.max;
 
-        let newHP = Math.min(maxHP, Math.max(0, currentHP + changeHP));
-        let newMP = Math.min(maxMP, Math.max(0, currentMP + changeMP));
-        let newIP = hasCharacter && token.actor.type !== "npc" ? Math.min(maxIP, Math.max(0, currentIP + changeIP)) : currentIP;
+        let newHP = currentHP + changeHP;
+        let newMP = currentMP + changeMP;
+        let newIP = currentIP + changeIP;
 
         if (html.find("#recoverHP")[0].checked) {
             newHP = maxHP;
@@ -98,10 +108,22 @@ function handleOkButtonClick(html, tokens, hasCharacter) {
             newIP = maxIP;
         }
 
-        token.actor.update({
-            "system.resources.hp.value": newHP,
-            "system.resources.mp.value": newMP,
-            "system.resources.ip.value": newIP
-        });
-    });
+        await applyAttributeChange(token.actor, "resources.hp", newHP, bypassClamping);
+        await applyAttributeChange(token.actor, "resources.mp", newMP, bypassClamping);
+        if (hasCharacter) {
+            await applyAttributeChange(token.actor, "resources.ip", newIP, bypassClamping);
+        }
+    }
+}
+
+async function applyAttributeChange(actor, attribute, value, bypassClamp) {
+    const current = foundry.utils.getProperty(actor.system, attribute);
+
+    if (bypassClamp) {
+        await actor.update({ [`system.${attribute}.value`]: value });
+    } else {
+        const max = foundry.utils.getProperty(actor.system, `${attribute}.max`);
+        value = Math.clamped(value, 0, max);
+        await actor.update({ [`system.${attribute}.value`]: value });
+    }
 }
