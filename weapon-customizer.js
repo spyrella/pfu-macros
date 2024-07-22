@@ -152,13 +152,16 @@ if (actors.length > 0) {
               const accuracyMod = parseInt(html.find("#accuracy-mod").val(), 10);
               const damageMod = parseInt(html.find("#damage-mod").val(), 10);
               const selectedWeapon = actor.items.get(selectedWeaponId);
+              const hrZeroChecked = html.find("#hrzero").prop("checked");
+              const hrZeroBool = hrZeroChecked;
 
               // Modify the item with the selected values
               await selectedWeapon.update({
                 "system.accuracy.value": selectedWeapon.system.accuracy.value + accuracyMod,
                 "system.damage.value": selectedWeapon.system.damage.value + damageMod,
                 "system.damageType.value": damageType,
-                "system.type.value": weaponType
+                "system.type.value": weaponType,
+                "system.rollInfo.useWeapon.hrZero.value": hrZeroBool
               });
 
               // Notify the user on success
@@ -174,6 +177,8 @@ if (actors.length > 0) {
               const accuracyMod = parseInt(html.find("#accuracy-mod").val(), 10);
               const damageMod = parseInt(html.find("#damage-mod").val(), 10);
               const selectedWeapon = actor.items.get(selectedWeaponId);
+              const hrZeroChecked = html.find("#hrzero").prop("checked");
+              const hrZeroBool = hrZeroChecked;
 
               // Fetch isEquipped value and slot from selected weapon
               const { value, slot } = selectedWeapon.system.isEquipped;
@@ -198,7 +203,8 @@ if (actors.length > 0) {
                 "system.damageType.value": damageType,
                 "system.type.value": weaponType,
                 "system.isEquipped.value": value,
-                "system.isEquipped.slot": slot
+                "system.isEquipped.slot": slot,
+                "system.rollInfo.useWeapon.hrZero.value": hrZeroBool
               });
 
               await newItem.update({ name: newItemName });
@@ -237,7 +243,9 @@ if (actors.length > 0) {
               });
 
               // Roll for the selected weapon
-              await selectedWeapon.roll(hrZeroBool);
+              await selectedWeapon.roll({
+                shift: hrZeroBool,
+              });
 
               // Delay until roll animation completes
               await new Promise(resolve => setTimeout(resolve, 1000));
