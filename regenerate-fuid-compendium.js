@@ -20,6 +20,9 @@ async function regenerateFUIDsInCompendiums() {
     let totalItemsUpdated = 0;
     let totalItemsSkipped = 0;
 
+    // Object to track all FUID values for duplicate detection
+    const fuidMap = new Map();
+
     // Function to process each compendium
     async function processCompendium(pack) {
         if (pack.locked) {
@@ -45,6 +48,13 @@ async function regenerateFUIDsInCompendiums() {
                 console.log(`Skipped ${doc.name}: already has FUID ${doc.system.fuid}`);
                 totalItemsSkipped++;
             }
+
+            // Track the FUID for duplicate checking
+            if (fuidMap.has(doc.system.fuid)) {
+                fuidMap.get(doc.system.fuid).push(doc.name);
+            } else {
+                fuidMap.set(doc.system.fuid, [doc.name]);
+            }
         }
     }
 
@@ -53,12 +63,24 @@ async function regenerateFUIDsInCompendiums() {
         await processCompendium(pack);
     }
 
+    // Check for duplicate FUIDs
+    const duplicates = [...fuidMap.entries()].filter(([fuid, names]) => names.length > 1);
+
     // Log summary of the operation
     console.log(`\n--- FUID Regeneration Completed ---`);
     console.log(`Total Compendiums Processed: ${game.packs.size}`);
     console.log(`Total Items Processed: ${totalItemsProcessed}`);
     console.log(`Total Items Updated: ${totalItemsUpdated}`);
     console.log(`Total Items Skipped: ${totalItemsSkipped}`);
+
+    if (duplicates.length > 0) {
+        console.log(`\n--- Duplicate FUIDs Found ---`);
+        duplicates.forEach(([fuid, names]) => {
+            console.log(`FUID ${fuid} is used by: ${names.join(', ')}`);
+        });
+    } else {
+        console.log(`\nNo duplicate FUIDs found.`);
+    }
 }
 
 // Run the macro
